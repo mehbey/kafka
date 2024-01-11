@@ -24,28 +24,35 @@ import org.junit.jupiter.api._
 import org.junit.jupiter.api.Assertions._
 import kafka.utils.TestUtils
 import kafka.cluster.Partition
+import kafka.log.LogManager
 import kafka.server.metadata.MockConfigRepository
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.SimpleRecord
 import org.apache.kafka.server.util.{KafkaScheduler, MockTime}
 import org.apache.kafka.storage.internals.log.{CleanerConfig, LogDirFailureChannel}
 
+import scala.collection.Seq
+
 class HighwatermarkPersistenceTest {
 
   val configs = TestUtils.createBrokerConfigs(2, TestUtils.MockZkConnect).map(KafkaConfig.fromProps)
   val topic = "foo"
   val configRepository = new MockConfigRepository()
-  val logManagers = configs map { config =>
-    TestUtils.createLogManager(
-      logDirs = config.logDirs.map(new File(_)),
-      cleanerConfig = new CleanerConfig(true))
-  }
+  var logManagers: Seq[LogManager] = _
 
   val logDirFailureChannels = configs map { config =>
     new LogDirFailureChannel(config.logDirs.size)
   }
 
   val alterIsrManager = TestUtils.createAlterIsrManager()
+  @BeforeEach
+  def setup(): Unit = {
+    logManagers = configs.map { config =>
+      TestUtils.createLogManager(
+        logDirs = config.logDirs.map(new File(_)),
+        cleanerConfig = new CleanerConfig(true))
+    }
+  }
 
   @AfterEach
   def teardown(): Unit = {
