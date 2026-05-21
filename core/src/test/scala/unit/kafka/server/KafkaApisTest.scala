@@ -196,6 +196,7 @@ class KafkaApisTest extends Logging {
 
     new KafkaApis(
       requestChannel = requestChannel,
+      socketServer = mock(classOf[kafka.network.SocketServer]),
       forwardingManager = forwardingManager,
       replicaManager = replicaManager,
       groupCoordinator = groupCoordinator,

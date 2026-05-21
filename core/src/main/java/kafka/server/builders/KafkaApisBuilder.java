@@ -209,6 +209,7 @@ public class KafkaApisBuilder {
         if (groupConfigManager == null) throw new RuntimeException("You must set groupConfigManager");
 
         return new KafkaApis(requestChannel,
+                             null, // socketServer - only needed for ListClientConnections, set via BrokerServer
                              forwardingManager,
                              replicaManager,
                              groupCoordinator,

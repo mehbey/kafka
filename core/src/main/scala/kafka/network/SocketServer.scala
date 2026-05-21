@@ -355,6 +355,43 @@ class SocketServer(
     }
     None
   }
+
+  /**
+   * Collect information about all active client connections across all processors.
+   * Used by ListClientConnections API (KIP-1329).
+   */
+  case class ConnectionInfo(connectionId: String, principal: String, clientAddress: String,
+                            clientPort: Int, listenerName: String, securityProtocol: String,
+                            softwareName: String, softwareVersion: String)
+
+  def collectClientConnections(): Seq[ConnectionInfo] = {
+    val result = new scala.collection.mutable.ArrayBuffer[ConnectionInfo]()
+    dataPlaneAcceptors.asScala.values.foreach { acceptor =>
+      val listener = acceptor.endPoint.listener()
+      val protocol = acceptor.endPoint.securityProtocol().name
+      acceptor.processors.foreach { processor =>
+        processor.selector.channels().forEach { channel =>
+          val principal = channel.principal()
+          val principalStr = if (principal != null) principal.toString else "ANONYMOUS"
+          val address = channel.socketAddress()
+          val addressStr = if (address != null) address.getHostAddress else ""
+          val port = if (address != null) channel.socketPort() else 0
+          val clientInfo = channel.channelMetadataRegistry().clientInformation()
+          result += ConnectionInfo(
+            connectionId = channel.id,
+            principal = principalStr,
+            clientAddress = addressStr,
+            clientPort = port,
+            listenerName = listener,
+            securityProtocol = protocol,
+            softwareName = if (clientInfo != null) clientInfo.softwareName else "",
+            softwareVersion = if (clientInfo != null) clientInfo.softwareVersion else ""
+          )
+        }
+      }
+    }
+    result.toSeq
+  }
 }
 
 object DataPlaneAcceptor {

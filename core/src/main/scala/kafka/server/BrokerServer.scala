@@ -468,6 +468,7 @@ class BrokerServer(
 
       dataPlaneRequestProcessor = new KafkaApis(
         requestChannel = socketServer.dataPlaneRequestChannel,
+        socketServer = socketServer,
         forwardingManager = forwardingManager,
         replicaManager = replicaManager,
         groupCoordinator = groupCoordinator,

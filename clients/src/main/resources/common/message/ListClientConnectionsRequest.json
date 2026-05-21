@@ -1,0 +1,19 @@
+{
+  "apiKey": 93,
+  "type": "request",
+  "listeners": ["broker"],
+  "name": "ListClientConnectionsRequest",
+  "validVersions": "0",
+  "flexibleVersions": "0+",
+  "fields": [
+    { "name": "PrincipalFilter", "type": "string", "versions": "0+",
+      "nullableVersions": "0+", "default": "null",
+      "about": "If set, only return connections for this principal. Null returns all." },
+    { "name": "ClientAddressFilter", "type": "string", "versions": "0+",
+      "nullableVersions": "0+", "default": "null",
+      "about": "If set, only return connections from this client address. Null returns all." },
+    { "name": "ListenerFilter", "type": "string", "versions": "0+",
+      "nullableVersions": "0+", "default": "null",
+      "about": "If set, only return connections on this listener. Null returns all." }
+  ]
+}

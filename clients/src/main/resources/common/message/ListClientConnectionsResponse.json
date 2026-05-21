@@ -1,0 +1,34 @@
+{
+  "apiKey": 93,
+  "type": "response",
+  "name": "ListClientConnectionsResponse",
+  "validVersions": "0",
+  "flexibleVersions": "0+",
+  "fields": [
+    { "name": "ThrottleTimeMs", "type": "int32", "versions": "0+",
+      "about": "Duration in milliseconds for which the request was throttled." },
+    { "name": "ErrorCode", "type": "int16", "versions": "0+",
+      "about": "The top-level error code, or 0 if there was no error." },
+    { "name": "Connections", "type": "[]Connection", "versions": "0+",
+      "about": "List of active connections on this broker.",
+      "fields": [
+        { "name": "ConnectionId", "type": "string", "versions": "0+",
+          "about": "The broker-assigned connection ID." },
+        { "name": "Principal", "type": "string", "versions": "0+",
+          "about": "The authenticated principal, e.g. User:alice." },
+        { "name": "ClientAddress", "type": "string", "versions": "0+",
+          "about": "The remote client IP address." },
+        { "name": "ClientPort", "type": "int32", "versions": "0+",
+          "about": "The remote client port." },
+        { "name": "ListenerName", "type": "string", "versions": "0+",
+          "about": "The listener the client connected to." },
+        { "name": "SecurityProtocol", "type": "string", "versions": "0+",
+          "about": "The security protocol in use." },
+        { "name": "SoftwareName", "type": "string", "versions": "0+",
+          "about": "The client software name from ApiVersionsRequest." },
+        { "name": "SoftwareVersion", "type": "string", "versions": "0+",
+          "about": "The client software version from ApiVersionsRequest." }
+      ]
+    }
+  ]
+}

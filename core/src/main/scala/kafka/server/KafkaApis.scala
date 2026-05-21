@@ -36,6 +36,7 @@ import org.apache.kafka.common.message.DeleteRecordsResponseData.{DeleteRecordsP
 import org.apache.kafka.common.message.DeleteShareGroupOffsetsRequestData.DeleteShareGroupOffsetsRequestTopic
 import org.apache.kafka.common.message.DeleteShareGroupOffsetsResponseData.DeleteShareGroupOffsetsResponseTopic
 import org.apache.kafka.common.message.ListOffsetsRequestData.ListOffsetsPartition
+import org.apache.kafka.common.message.ListClientConnectionsResponseData
 import org.apache.kafka.common.message.ListOffsetsResponseData.{ListOffsetsPartitionResponse, ListOffsetsTopicResponse}
 import org.apache.kafka.common.message.MetadataResponseData.{MetadataResponsePartition, MetadataResponseTopic}
 import org.apache.kafka.common.message.OffsetForLeaderEpochRequestData.OffsetForLeaderTopic
@@ -90,6 +91,7 @@ import scala.jdk.javaapi.OptionConverters
  * Logic to handle the various Kafka requests
  */
 class KafkaApis(val requestChannel: RequestChannel,
+                val socketServer: kafka.network.SocketServer,
                 val forwardingManager: ForwardingManager,
                 val replicaManager: ReplicaManager,
                 val groupCoordinator: GroupCoordinator,
@@ -232,6 +234,7 @@ class KafkaApis(val requestChannel: RequestChannel,
         case ApiKeys.GET_TELEMETRY_SUBSCRIPTIONS => handleGetTelemetrySubscriptionsRequest(request)
         case ApiKeys.PUSH_TELEMETRY => handlePushTelemetryRequest(request)
         case ApiKeys.LIST_CONFIG_RESOURCES => handleListConfigResources(request)
+        case ApiKeys.LIST_CLIENT_CONNECTIONS => handleListClientConnections(request)
         case ApiKeys.ADD_RAFT_VOTER => forwardToController(request)
         case ApiKeys.REMOVE_RAFT_VOTER => forwardToController(request)
         case ApiKeys.SHARE_GROUP_HEARTBEAT => handleShareGroupHeartbeat(request).exceptionally(handleError)
@@ -3071,6 +3074,44 @@ class KafkaApis(val requestChannel: RequestChannel,
       }
       data.setConfigResources(result)
       requestHelper.sendMaybeThrottle(request, new ListConfigResourcesResponse(data))
+    }
+  }
+
+  private def handleListClientConnections(request: Request): Unit = {
+    val listRequest = request.body(classOf[ListClientConnectionsRequest])
+
+    if (!authHelper.authorize(request.context, DESCRIBE, CLUSTER, CLUSTER_NAME)) {
+      requestHelper.sendMaybeThrottle(request, listRequest.getErrorResponse(Errors.CLUSTER_AUTHORIZATION_FAILED.exception))
+    } else {
+      val principalFilter = Option(listRequest.data.principalFilter)
+      val addressFilter = Option(listRequest.data.clientAddressFilter)
+      val listenerFilter = Option(listRequest.data.listenerFilter)
+
+      val allConnections = socketServer.collectClientConnections()
+
+      val filtered = allConnections.filter { conn =>
+        principalFilter.forall(f => conn.principal.contains(f)) &&
+        addressFilter.forall(f => conn.clientAddress == f) &&
+        listenerFilter.forall(f => conn.listenerName == f)
+      }
+
+      val connections = new java.util.ArrayList[ListClientConnectionsResponseData.Connection]()
+      filtered.foreach { conn =>
+        connections.add(new ListClientConnectionsResponseData.Connection()
+          .setConnectionId(conn.connectionId)
+          .setPrincipal(conn.principal)
+          .setClientAddress(conn.clientAddress)
+          .setClientPort(conn.clientPort)
+          .setListenerName(conn.listenerName)
+          .setSecurityProtocol(conn.securityProtocol)
+          .setSoftwareName(conn.softwareName)
+          .setSoftwareVersion(conn.softwareVersion))
+      }
+
+      val data = new ListClientConnectionsResponseData()
+        .setErrorCode(Errors.NONE.code)
+        .setConnections(connections)
+      requestHelper.sendMaybeThrottle(request, new ListClientConnectionsResponse(data))
     }
   }
 
